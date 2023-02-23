@@ -11,10 +11,11 @@ namespace ImageProcessing.WebApi.TaskManagerService.Controllers
     public class ImageController : ServiceControllerBase
     {
         private readonly ILogger<ImageController> _logger;
-        private readonly BlobServiceClient _blobService;
+        private readonly IBlobStorageService _blobService;
         private readonly ICosmosDbService _cosmosDbService;
 
-        public ImageController(ICosmosDbService cosmosDbService, BlobServiceClient blobService, ILogger<ImageController> logger)
+
+        public ImageController(ICosmosDbService cosmosDbService, IBlobStorageService blobService, ILogger<ImageController> logger)
         {
             _cosmosDbService = cosmosDbService;
             _blobService = blobService;
@@ -26,15 +27,16 @@ namespace ImageProcessing.WebApi.TaskManagerService.Controllers
         public async Task<IActionResult> UploadImage(IFormFile file)
         {
             var taskId = Guid.NewGuid();
+            var fileName = file.FileName;
 
-            var blobName = $"{taskId.ToString()}/{file.FileName}";
-            var containerClient = _blobService.GetBlobContainerClient("image-storage");
-            var blobClient = containerClient.GetBlobClient(blobName);
-            await containerClient.UploadBlobAsync(blobName, file.OpenReadStream());
+            var blobUrl = await _blobService.UploadBlobAsync(content: file.OpenReadStream(), subFolder: taskId.ToString(), blobName: fileName);
 
-            var imageUrl = blobClient.Uri;
+            var task = ProcessingTaskTools.GenerateProcessingTask(
+                taskId: taskId,
+                fileName: fileName,
+                imageUrl: blobUrl
+            );
 
-            var task = ProcessingTaskTools.GenerateProcessingTask(taskId: taskId, fileName: file.Name, imageUrl: imageUrl);
             await _cosmosDbService.AddItemAsync(task);
 
             return Ok(task);

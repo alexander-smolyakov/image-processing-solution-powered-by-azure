@@ -28,6 +28,12 @@ namespace ImageProcessing.WebApi.ImageProcessingService.Controllers
         public async Task<IActionResult> UploadImage(Guid taskId)
         {
             var task = await _cosmosDbService.GetItemAsync(taskId.ToString());
+
+            if (task.Status == TaskStatus.Done)
+            {
+                return Ok(task);
+            }
+
             task = ProcessingTaskTools.UpdateTaskStatus(task, TaskStatus.InProgress);
             await _cosmosDbService.UpdateItemAsync(taskId.ToString(), task);
 
