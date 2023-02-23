@@ -27,7 +27,7 @@ namespace ImageProcessing.Infrastructure.Services
             await _container.DeleteItemAsync<ProcessingTask>(id, new PartitionKey(id));
         }
 
-        public async Task<ProcessingTask> GetItemAsync(string id)
+        public async Task<ProcessingTask?> GetItemAsync(string id)
         {
             try
             {

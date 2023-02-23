@@ -31,12 +31,47 @@ static async Task<CosmosDbService> InitializeCosmosClientInstanceAsync(IConfigur
     return cosmosDbService;
 }
 
+static BlobStorageService InitializeBlobStorageClientInstance(IConfigurationSection configurationSection)
+{
+    var connectionString = configurationSection["ConnectionString"];
+
+    var blobStorageService = new BlobStorageService(
+        connectionString: connectionString,
+        blobContainerName: "image-storage"
+    );
+
+    return blobStorageService;
+}
+
 // Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.ConfigureSwaggerGen(setup =>
+{
+    setup.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "Image Processing Service",
+        Version = "v1"
+    });
+});
 builder.Services.AddRouting(options => options.LowercaseUrls = true);
-builder.Services.AddSingleton<ICosmosDbService>(InitializeCosmosClientInstanceAsync(builder.Configuration.GetSection("CosmosDb")).GetAwaiter().GetResult());
+
+builder.Services.AddSingleton<ICosmosDbService>
+(
+    InitializeCosmosClientInstanceAsync
+    (
+        builder.Configuration.GetSection("CosmosDb")
+    ).GetAwaiter().GetResult()
+);
+
+builder.Services.AddSingleton<IBlobStorageService>
+(
+    InitializeBlobStorageClientInstance
+    (
+        builder.Configuration.GetSection("AzureStorage")
+    )
+);
 
 builder.Services.AddAzureClients(clientBuilder =>
 {

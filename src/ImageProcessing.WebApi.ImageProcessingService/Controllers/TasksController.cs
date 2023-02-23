@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the MIT license.  See License.txt in the project root for license information.
 
-using Azure.Storage.Blobs;
-using ImageProcessing.Core.Entities;
+using ImageProcessing.Core.Tools;
 using ImageProcessing.Infrastructure.Services;
 using Microsoft.AspNetCore.Mvc;
 using SixLabors.ImageSharp;
@@ -14,10 +13,10 @@ namespace ImageProcessing.WebApi.ImageProcessingService.Controllers
     public class TasksController : ServiceControllerBase
     {
         private readonly ILogger<TasksController> _logger;
-        private readonly BlobServiceClient _blobService;
+        private readonly IBlobStorageService _blobService;
         private readonly ICosmosDbService _cosmosDbService;
 
-        public TasksController(ICosmosDbService cosmosDbService, BlobServiceClient blobService, ILogger<TasksController> logger)
+        public TasksController(ICosmosDbService cosmosDbService, IBlobStorageService blobService, ILogger<TasksController> logger)
         {
             _cosmosDbService = cosmosDbService;
             _blobService = blobService;
@@ -29,40 +28,26 @@ namespace ImageProcessing.WebApi.ImageProcessingService.Controllers
         public async Task<IActionResult> UploadImage(Guid taskId)
         {
             var task = await _cosmosDbService.GetItemAsync(taskId.ToString());
-
-            task.Status = TaskStatus.InProgress;
-            task.StatusAsString = TaskStatus.InProgress.ToString();
-            task.UpdatedAt = DateTime.UtcNow;
-
+            task = ProcessingTaskTools.UpdateTaskStatus(task, TaskStatus.InProgress);
             await _cosmosDbService.UpdateItemAsync(taskId.ToString(), task);
 
-            var containerClient = _blobService.GetBlobContainerClient(taskId.ToString());
-            var blobClient = containerClient.GetBlobClient(task.FileName);
+            var blobContent = await _blobService.DownloadBlobAsStream(subFolder: taskId.ToString(), blobName: task.FileName);
 
-            var stream = await blobClient.OpenReadAsync();
-            (Image myImage, IImageFormat Format) imf = await Image.LoadWithFormatAsync(stream);
+            (Image myImage, IImageFormat Format) imf = await Image.LoadWithFormatAsync(blobContent);
             var ifm = Configuration.Default.ImageFormatsManager;
             var format = ifm.FindFormatByMimeType(imf.Format.DefaultMimeType);
             var encoder = ifm.FindEncoder(format);
 
-            blobClient = containerClient.GetBlobClient($"rotated_{task.FileName}");
-
             imf.myImage.Mutate(x => x.RotateFlip(rotateMode: RotateMode.Rotate180, flipMode: FlipMode.None));
 
-            using (var ms = new MemoryStream())
+            using (var memoryStream = new MemoryStream())
             {
-                await imf.myImage.SaveAsync(stream: ms, encoder: encoder);
-                ms.Position = 0;
-                await blobClient.UploadAsync(ms);
+                await imf.myImage.SaveAsync(stream: memoryStream, encoder: encoder);
+                memoryStream.Position = 0;
+                task.ProcessedImageUrl = await _blobService.UploadBlobAsync(content: memoryStream, subFolder: taskId.ToString(), blobName: $"processed_{task.FileName}");
             }
 
-            var imageUrl = blobClient.Uri;
-
-            task.Status = TaskStatus.Done;
-            task.StatusAsString = TaskStatus.Done.ToString();
-            task.ProcessedImageUrl = imageUrl;
-            task.UpdatedAt = DateTime.UtcNow;
-
+            task = ProcessingTaskTools.UpdateTaskStatus(task, TaskStatus.Done);
             await _cosmosDbService.UpdateItemAsync(taskId.ToString(), task);
 
             return Ok(task);

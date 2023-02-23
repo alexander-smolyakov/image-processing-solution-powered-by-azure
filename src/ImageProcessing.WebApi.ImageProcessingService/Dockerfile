@@ -7,16 +7,16 @@ EXPOSE 443
 
 FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
 WORKDIR /src
-COPY ["ImageProcessing.ImageProcessingService/ImageProcessing.ImageProcessingService.csproj", "ImageProcessing.ImageProcessingService/"]
-RUN dotnet restore "ImageProcessing.ImageProcessingService/ImageProcessing.ImageProcessingService.csproj"
+COPY ["ImageProcessing.WebApi.ImageProcessingService/ImageProcessing.WebApi.ImageProcessingService.csproj", "ImageProcessing.WebApi.ImageProcessingService/"]
+RUN dotnet restore "ImageProcessing.WebApi.ImageProcessingService/ImageProcessing.WebApi.ImageProcessingService.csproj"
 COPY . .
-WORKDIR "/src/ImageProcessing.ImageProcessingService"
-RUN dotnet build "ImageProcessing.ImageProcessingService.csproj" -c Release -o /app/build
+WORKDIR "/src/ImageProcessing.WebApi.ImageProcessingService"
+RUN dotnet build "ImageProcessing.WebApi.ImageProcessingService.csproj" -c Release -o /app/build
 
 FROM build AS publish
-RUN dotnet publish "ImageProcessing.ImageProcessingService.csproj" -c Release -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "ImageProcessing.WebApi.ImageProcessingService.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "ImageProcessing.ImageProcessingService.dll"]
+ENTRYPOINT ["dotnet", "ImageProcessing.WebApi.ImageProcessingService.dll"]

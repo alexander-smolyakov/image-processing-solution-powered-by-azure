@@ -24,7 +24,7 @@ static async Task<CosmosDbService> InitializeCosmosClientInstanceAsync(IConfigur
     var containerName = configurationSection["ContainerName"];
     var account = configurationSection["Account"];
     var key = configurationSection["Key"];
-    var client = new Microsoft.Azure.Cosmos.CosmosClient(account, key, cosmosClientOptions);
+    var client = new CosmosClient(account, key, cosmosClientOptions);
     var database = await client.CreateDatabaseIfNotExistsAsync(databaseName);
     await database.Database.CreateContainerIfNotExistsAsync(containerName, "/id");
     var cosmosDbService = new CosmosDbService(client, databaseName, containerName);
@@ -36,13 +36,19 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddRouting(options => options.LowercaseUrls = true);
-builder.Services.AddSingleton<ICosmosDbService>(InitializeCosmosClientInstanceAsync(builder.Configuration.GetSection("CosmosDb")).GetAwaiter().GetResult());
+builder.Services.AddSingleton<ICosmosDbService>(
+    InitializeCosmosClientInstanceAsync(
+        builder.Configuration.GetSection("CosmosDb")
+    ).GetAwaiter().GetResult()
+);
 
-builder.Services.AddAzureClients(clientBuilder =>
-{
-    var connectionString = builder.Configuration["AzureStorage:ConnectionString"];
-    clientBuilder.AddBlobServiceClient(connectionString);
-});
+builder.Services.AddAzureClients(
+    clientBuilder =>
+    {
+        var connectionString = builder.Configuration["AzureStorage:ConnectionString"];
+        clientBuilder.AddBlobServiceClient(connectionString);
+    }
+);
 
 var app = builder.Build();
 

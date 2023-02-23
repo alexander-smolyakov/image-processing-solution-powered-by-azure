@@ -7,16 +7,16 @@ EXPOSE 443
 
 FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
 WORKDIR /src
-COPY ["ImageProcessing.TaskManagerService/ImageProcessing.TaskManagerService.csproj", "ImageProcessing.TaskManagerService/"]
-RUN dotnet restore "ImageProcessing.TaskManagerService/ImageProcessing.TaskManagerService.csproj"
+COPY ["ImageProcessing.WebApi.TaskManagerService/ImageProcessing.WebApi.TaskManagerService.csproj", "ImageProcessing.WebApi.TaskManagerService/"]
+RUN dotnet restore "ImageProcessing.WebApi.TaskManagerService/ImageProcessing.WebApi.TaskManagerService.csproj"
 COPY . .
-WORKDIR "/src/ImageProcessing.TaskManagerService"
-RUN dotnet build "ImageProcessing.TaskManagerService.csproj" -c Release -o /app/build
+WORKDIR "/src/ImageProcessing.WebApi.TaskManagerService"
+RUN dotnet build "ImageProcessing.WebApi.TaskManagerService.csproj" -c Release -o /app/build
 
 FROM build AS publish
-RUN dotnet publish "ImageProcessing.TaskManagerService.csproj" -c Release -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "ImageProcessing.WebApi.TaskManagerService.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "ImageProcessing.TaskManagerService.dll"]
+ENTRYPOINT ["dotnet", "ImageProcessing.WebApi.TaskManagerService.dll"]
