@@ -2,7 +2,7 @@
 
 using ImageProcessing.Infrastructure.Services;
 using Microsoft.Azure.Cosmos;
-using Microsoft.Extensions.Azure;
+
 var builder = WebApplication.CreateBuilder(args);
 
 static async Task<CosmosDbService> InitializeCosmosClientInstanceAsync(IConfigurationSection configurationSection)
@@ -43,10 +43,30 @@ static BlobStorageService InitializeBlobStorageClientInstance(IConfigurationSect
     return blobStorageService;
 }
 
+static BusTopicService InitializeBusTopicClientInstance(IConfigurationSection configurationSection)
+{
+    var connectionString = configurationSection["ConnectionString"];
+
+    var busTopicService = new BusTopicService(
+        connectionString: connectionString,
+        topicName: "processing-tasks"
+    );
+
+    return busTopicService;
+}
+
 // Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.ConfigureSwaggerGen(setup =>
+{
+    setup.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "Task Manager Service",
+        Version = "v1"
+    });
+});
 builder.Services.AddRouting(options => options.LowercaseUrls = true);
 builder.Services.AddSingleton<ICosmosDbService>
 (
@@ -61,6 +81,14 @@ builder.Services.AddSingleton<IBlobStorageService>
     InitializeBlobStorageClientInstance
     (
         builder.Configuration.GetSection("AzureStorage")
+    )
+);
+
+builder.Services.AddSingleton<IBusTopicService>
+(
+    InitializeBusTopicClientInstance
+    (
+        builder.Configuration.GetSection("AzureBusTopic")
     )
 );
 

@@ -26,10 +26,15 @@ namespace ImageProcessing.WebApi.TaskManagerService.Controllers
         }
 
         [HttpGet("{id:Guid}")]
-        public async Task<ProcessingTask> GetTaskByID(Guid id)
+        public async Task<IActionResult> GetTaskByID(Guid id)
         {
             var task = await _cosmosDbService.GetItemAsync(id.ToString());
-            return task;
+            if (task is null)
+            {
+                return BadRequest($"Task doesn't exist {id}");
+            }
+
+            return Ok(task);
         }
     }
 }

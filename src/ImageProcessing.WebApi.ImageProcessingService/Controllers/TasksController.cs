@@ -29,9 +29,14 @@ namespace ImageProcessing.WebApi.ImageProcessingService.Controllers
         {
             var task = await _cosmosDbService.GetItemAsync(taskId.ToString());
 
+            if (task is null)
+            {
+                return BadRequest($"Task with ID: {taskId} not found");
+            }
+
             if (task.Status == TaskStatus.Done)
             {
-                return Ok(task);
+                return Ok(task.ProcessedImageUrl);
             }
 
             task = ProcessingTaskTools.UpdateTaskStatus(task, TaskStatus.InProgress);
