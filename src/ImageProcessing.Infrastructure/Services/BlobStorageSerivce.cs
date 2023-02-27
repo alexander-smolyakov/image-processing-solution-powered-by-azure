@@ -15,12 +15,23 @@ namespace ImageProcessing.Infrastructure.Services
             _containerClient = _serviceClient.GetBlobContainerClient(blobContainerName);
         }
 
+        /// <summary>
+        /// Get client for specific blob
+        /// </summary>
+        /// <param name="blobName">Full path to blob</param>
+        /// <returns>Instance of client to work with blob</returns>
         public BlobClient GetBlobClient(string blobName)
         {
             var client = _containerClient.GetBlobClient(blobName);
             return client;
         }
 
+        /// <summary>
+        /// Download blob from storage
+        /// </summary>
+        /// <param name="subFolder">Folder where blob is stored</param>
+        /// <param name="blobName">Name of blob to download</param>
+        /// <returns>Stream with blob content</returns>
         public async Task<Stream> DownloadBlobAsStream(string subFolder, string blobName)
         {
             var blobFullPath = $"{subFolder}/{blobName}";
@@ -29,6 +40,13 @@ namespace ImageProcessing.Infrastructure.Services
             return blobContent;
         }
 
+        /// <summary>
+        /// Upload blob to storage
+        /// </summary>
+        /// <param name="content">Stream with content to upload</param>
+        /// <param name="subFolder">Folder where to upload blob</param>
+        /// <param name="blobName">Blob name</param>
+        /// <returns></returns>
         public async Task<Uri> UploadBlobAsync(Stream content, string subFolder, string blobName)
         {
             var blobFullName = $"{subFolder}/{blobName}";

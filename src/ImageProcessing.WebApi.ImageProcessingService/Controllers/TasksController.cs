@@ -5,7 +5,6 @@ using ImageProcessing.Infrastructure.Services;
 using Microsoft.AspNetCore.Mvc;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.Processing;
 using TaskStatus = ImageProcessing.Core.Entities.TaskStatus;
 
 namespace ImageProcessing.WebApi.ImageProcessingService.Controllers
@@ -25,7 +24,7 @@ namespace ImageProcessing.WebApi.ImageProcessingService.Controllers
 
         [HttpPost]
         [Route("process")]
-        public async Task<IActionResult> UploadImage(Guid taskId)
+        public async Task<IActionResult> ProcessTask(Guid taskId)
         {
             var task = await _cosmosDbService.GetItemAsync(taskId.ToString());
 
@@ -44,16 +43,11 @@ namespace ImageProcessing.WebApi.ImageProcessingService.Controllers
 
             var blobContent = await _blobService.DownloadBlobAsStream(subFolder: taskId.ToString(), blobName: task.FileName);
 
-            (Image myImage, IImageFormat Format) imf = await Image.LoadWithFormatAsync(blobContent);
-            var ifm = Configuration.Default.ImageFormatsManager;
-            var format = ifm.FindFormatByMimeType(imf.Format.DefaultMimeType);
-            var encoder = ifm.FindEncoder(format);
-
-            imf.myImage.Mutate(x => x.RotateFlip(rotateMode: RotateMode.Rotate180, flipMode: FlipMode.None));
+            (Image content, IImageEncoder encoder) processedImage = await ImageTool.RotateImageAsync(blobContent);
 
             using (var memoryStream = new MemoryStream())
             {
-                await imf.myImage.SaveAsync(stream: memoryStream, encoder: encoder);
+                await processedImage.content.SaveAsync(stream: memoryStream, encoder: processedImage.encoder);
                 memoryStream.Position = 0;
                 task.ProcessedImageUrl = await _blobService.UploadBlobAsync(content: memoryStream, subFolder: taskId.ToString(), blobName: $"processed_{task.FileName}");
             }

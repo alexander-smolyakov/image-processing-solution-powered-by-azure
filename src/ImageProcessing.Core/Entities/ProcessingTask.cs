@@ -5,9 +5,13 @@ namespace ImageProcessing.Core.Entities
     public class ProcessingTask : BaseEntity
     {
         public TaskStatus Status { get; set; }
+
         public string? StatusAsString { get; set; }
+
         public string FileName { get; set; } = "file";
+
         public Uri OriginalImageUrl { get; set; } = new Uri("about:blank");
+
         public Uri ProcessedImageUrl { get; set; } = new Uri("about:blank");
     }
 }

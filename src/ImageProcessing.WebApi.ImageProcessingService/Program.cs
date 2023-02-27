@@ -1,9 +1,7 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the MIT license.  See License.txt in the project root for license information.
+
 using ImageProcessing.Infrastructure.Services;
 using Microsoft.Azure.Cosmos;
-using Microsoft.Extensions.Azure;
-
-var builder = WebApplication.CreateBuilder(args);
 
 static async Task<CosmosDbService> InitializeCosmosClientInstanceAsync(IConfigurationSection configurationSection)
 {
@@ -24,10 +22,11 @@ static async Task<CosmosDbService> InitializeCosmosClientInstanceAsync(IConfigur
     var containerName = configurationSection["ContainerName"];
     var account = configurationSection["Account"];
     var key = configurationSection["Key"];
-    var client = new Microsoft.Azure.Cosmos.CosmosClient(account, key, cosmosClientOptions);
+    var client = new CosmosClient(account, key, cosmosClientOptions);
     var database = await client.CreateDatabaseIfNotExistsAsync(databaseName);
     await database.Database.CreateContainerIfNotExistsAsync(containerName, "/id");
     var cosmosDbService = new CosmosDbService(client, databaseName, containerName);
+
     return cosmosDbService;
 }
 
@@ -42,6 +41,18 @@ static BlobStorageService InitializeBlobStorageClientInstance(IConfigurationSect
 
     return blobStorageService;
 }
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Set config files
+builder.Configuration.AddJsonFile(
+        path: "appsettings.json",
+        optional: false,
+        reloadOnChange: true);
+builder.Configuration.AddJsonFile(
+    path: $"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")}.json",
+    optional: true,
+    reloadOnChange: true);
 
 // Add services to the container.
 builder.Services.AddControllers();
@@ -73,25 +84,27 @@ builder.Services.AddSingleton<IBlobStorageService>
     )
 );
 
-builder.Services.AddAzureClients(clientBuilder =>
-{
-    var connectionString = builder.Configuration["AzureStorage:ConnectionString"];
-    clientBuilder.AddBlobServiceClient(connectionString);
-});
-
 var app = builder.Build();
-
-app.UseSwagger();
-app.UseSwaggerUI(options =>
+try
 {
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "v2");
-    options.RoutePrefix = string.Empty;
-});
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
+        options.RoutePrefix = string.Empty;
+    });
 
-app.UseHttpsRedirection();
+    app.UseHttpsRedirection();
 
-app.UseAuthorization();
+    app.UseAuthorization();
 
-app.MapControllers();
+    app.MapControllers();
 
-app.Run();
+    app.Logger.LogInformation("Starting up service");
+    app.Run();
+    app.Logger.LogInformation("Shutting down service");
+}
+catch (Exception ex)
+{
+    app.Logger.LogError(ex, "Host terminated unexpectedly");
+}

@@ -7,19 +7,24 @@ namespace ImageProcessing.Infrastructure.Services
 {
     public class BusTopicService : IBusTopicService
     {
-        private readonly ServiceBusClient _busClient;
-        private readonly ServiceBusSender _busSender;
+        private readonly ServiceBusClient _client;
+        private readonly ServiceBusSender _sender;
 
         public BusTopicService(string connectionString, string topicName)
         {
-            _busClient = new ServiceBusClient(connectionString);
-            _busSender = _busClient.CreateSender(topicName);
+            _client = new ServiceBusClient(connectionString);
+            _sender = _client.CreateSender(topicName);
         }
 
+        /// <summary>
+        /// Send topic to service bus
+        /// </summary>
+        /// <param name="task">Object payload</param>
+        /// <returns></returns>
         public async Task SendMessagesAsync(ProcessingTask task)
         {
             var message = new ServiceBusMessage(task.Id.ToString());
-            await _busSender.SendMessageAsync(message);
+            await _sender.SendMessageAsync(message);
         }
     }
 }
