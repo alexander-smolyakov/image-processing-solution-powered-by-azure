@@ -61,7 +61,7 @@ namespace ImageProcessing.WebApi.ImageProcessingService.Controllers
             task = ProcessingTaskTools.UpdateTaskStatus(task, TaskStatus.Done);
             await _cosmosDbService.UpdateItemAsync(taskId.ToString(), task);
 
-            return Ok(task);
+            return Ok(new { processedImageUrl = task.ProcessedImageUrl });
         }
     }
 }
