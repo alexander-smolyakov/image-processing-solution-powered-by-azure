@@ -26,7 +26,7 @@ namespace ImageProcessing.Core.Tools
             var encoder = formatManager.FindEncoder(format);
 
             // Rotate image
-            metadata.content.Mutate(image => image.RotateFlip(rotateMode: RotateMode.Rotate180, flipMode: FlipMode.None));
+            metadata.content.Mutate(image => image.RotateFlip(rotateMode: rotate, flipMode: FlipMode.None));
 
             return (metadata.content, encoder);
         }

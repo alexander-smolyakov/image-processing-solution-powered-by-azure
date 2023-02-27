@@ -32,7 +32,7 @@ namespace ImageProcessing.WebApi.TaskManagerService.Controllers
 
         [HttpGet("{id:Guid}")]
         /// <summary>
-        /// Get tasks from Cosmos DB by specifing id
+        /// Get tasks from Cosmos DB by specifying id
         /// </summary>
         /// <returns>Collection of tasks</returns>
         /// <response code="200">OK</response>
